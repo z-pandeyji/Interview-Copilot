@@ -1,0 +1,15 @@
+{
+  "default_user": {
+    "total_questions_answered": 1,
+    "score_history": [
+      0
+    ],
+    "average_score": 0,
+    "recurring_weaknesses": [
+      "Data Encryption and Access Control",
+      "Arbitrary Precision Arithmetic",
+      "Regulatory Compliance and Audit Trails",
+      "Transaction Idempotency and Reconciliation"
+    ]
+  }
+}
