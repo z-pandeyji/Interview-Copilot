@@ -1,46 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AnalyzeResponse, AppState } from "@/types";
 import { analyzeResume, parsePdf } from "@/lib/api";
 import AnalyzeButton from "@/components/AnalyzeButton";
 import ResultCards from "@/components/ResultCards";
 import SkeletonResults from "@/components/SkeletonResults";
-
-const SAMPLE_RESUME = `Software Engineer with 3 years of experience building scalable web applications.
-
-Skills: React, TypeScript, Node.js, Python, PostgreSQL, REST APIs, Git, Docker
-
-Experience:
-• Frontend Engineer at TechCorp (2022–present)
-  - Built and maintained React dashboard used by 50,000 daily active users
-  - Reduced page load time by 40% through code splitting and lazy loading
-  - Led migration from JavaScript to TypeScript across 3 major modules
-
-• Junior Developer at StartupXYZ (2021–2022)
-  - Developed RESTful APIs using Node.js and Express
-  - Collaborated with product team to ship 2 major features per sprint
-
-Education: B.Tech Computer Science, Delhi University (2021)`;
-
-const SAMPLE_JD = `Senior Frontend Engineer — FinTech Startup
-
-We're looking for a Senior Frontend Engineer to join our growing team building the next generation of personal finance tools.
-
-Requirements:
-• 4+ years of experience with React or similar frameworks
-• Strong TypeScript skills
-• Experience with state management (Redux, Zustand, or similar)
-• Familiarity with REST APIs and GraphQL
-• Experience with performance optimization
-• Strong communication and ability to work in fast-paced environments
-
-Nice to have:
-• Experience with financial products
-• Knowledge of accessibility standards (WCAG)
-• Open source contributions
-
-We offer competitive salary, equity, remote-first culture, and fast career growth.`;
+import { sampleDataList, SampleRole } from "@/lib/sampleData";
 
 export default function Home() {
   const [resume, setResume] = useState("");
@@ -48,6 +14,9 @@ export default function Home() {
   const [state, setState] = useState<AppState>("idle");
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [error, setError] = useState<string>("");
+
+  // Role Selection
+  const [selectedRole, setSelectedRole] = useState<SampleRole | "Custom">("Custom");
 
   // PDF Upload State
   const fileRef = useRef<HTMLInputElement>(null);
@@ -64,6 +33,7 @@ export default function Home() {
     setUploadingPdf(true);
     setUploadError(null);
     setFileName(file.name);
+    setSelectedRole("Custom"); // Reset to custom when manual upload happens
 
     try {
       const text = await parsePdf(file);
@@ -75,6 +45,25 @@ export default function Home() {
       setUploadingPdf(false);
       if (fileRef.current) fileRef.current.value = "";
     }
+  };
+
+  const handleRoleSelect = (role: SampleRole | "Custom") => {
+    setSelectedRole(role);
+    if (role === "Custom") {
+      setResume("");
+      setJobDescription("");
+      setFileName(null);
+    } else {
+      const data = sampleDataList.find(r => r.role === role);
+      if (data) {
+        setResume(data.resume);
+        setJobDescription(data.jobDescription);
+        setFileName(`Sample_${role.replace(/\s+/g, '_')}_Resume.pdf`);
+      }
+    }
+    setState("idle");
+    setResult(null);
+    setError("");
   };
 
   const handleAnalyze = async () => {
@@ -94,222 +83,248 @@ export default function Home() {
     }
   };
 
-  const handleLoadSample = () => {
-    setResume(SAMPLE_RESUME);
-    setFileName("sample_resume.pdf");
-    setJobDescription(SAMPLE_JD);
-    setState("idle");
-    setResult(null);
-    setError("");
-  };
-
   const handleReset = () => {
     setState("idle");
     setResult(null);
     setError("");
+    setSelectedRole("Custom");
+    setResume("");
+    setJobDescription("");
+    setFileName(null);
   };
 
   return (
-    <main>
-      {/* ── Navigation ─────────────────────────────────────────────────── */}
-      <nav style={{
-        position: "sticky", top: 0, zIndex: 50,
-        borderBottom: "1px solid var(--border-subtle)",
-        background: "rgba(14, 14, 14, 0.85)",
-        backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-      }}>
-        <div style={{
-          maxWidth: "1200px", margin: "0 auto",
-          padding: "1rem 1.5rem",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
-            <div style={{
-              width: "36px", height: "36px", borderRadius: "10px",
-              background: "linear-gradient(135deg, #00dce5, #00858b)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "1.2rem", flexShrink: 0,
-              boxShadow: "0 4px 16px rgba(0, 220, 229, 0.3)",
-            }}>⚡</div>
-            <span style={{ fontWeight: 800, fontSize: "1.1rem", letterSpacing: "-0.02em", color: "var(--text-primary)" }}>
-              Aetheris <span className="gradient-text">Copilot</span>
-            </span>
+    <div className="min-h-screen flex flex-col bg-[#0e0e0e] text-[#e5e2e1] font-sans selection:bg-[#00dce5]/30">
+      
+      {/* ── Dashboard Top Navigation ─────────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 border-b border-[#2a2a2a] bg-[#0e0e0e]/80 backdrop-blur-xl">
+        <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00dce5] to-[#00858b] flex items-center justify-center text-xl shadow-[0_0_20px_rgba(0,220,229,0.3)]">
+              ⚡
+            </div>
+            <div>
+              <h1 className="font-extrabold text-xl tracking-tight leading-none">
+                UYSO <span className="text-[#00dce5] font-light">|</span> <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#e5e2e1] to-[#958e97]">INTERVIEW COPILOT</span>
+              </h1>
+              <span className="text-[0.65rem] uppercase tracking-[0.2em] text-[#00dce5] font-semibold mt-1 block">
+                Dashboard Environment
+              </span>
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <span style={{
-              fontSize: "0.72rem", fontWeight: 700, color: "#00dce5",
-              background: "rgba(0, 220, 229, 0.1)", border: "1px solid rgba(0, 220, 229, 0.2)",
-              borderRadius: "50px", padding: "0.25rem 0.75rem", letterSpacing: "0.05em",
-            }}>
-              V10.0
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1a1a1a] border border-[#2a2a2a]">
+              <div className="w-2 h-2 rounded-full bg-[#00dce5] animate-pulse"></div>
+              <span className="text-xs font-medium text-[#958e97]">System Online</span>
+            </div>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* ── Hero ───────────────────────────────────────────────────────── */}
-      <section style={{ maxWidth: "1200px", margin: "0 auto", padding: "5rem 1.5rem 3rem", textAlign: "center" }}>
-        <div className="animate-fade-in-up">
-          <h1 style={{
-            fontSize: "clamp(2.5rem, 6vw, 4.5rem)", fontWeight: 800,
-            lineHeight: 1.05, letterSpacing: "-0.04em",
-            marginBottom: "1.25rem", color: "var(--text-primary)",
-          }}>
-            Analyze your profile.<br />
-            <span className="gradient-text">Dominate the interview.</span>
-          </h1>
+      {/* ── Main Dashboard Workspace ─────────────────────────────────────────────────────────── */}
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-6 py-8 flex flex-col gap-8">
+        
+        {/* Workspace Header & Tabs */}
+        <section className="animate-fade-in-up">
+          <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight mb-2">Configure Analysis</h2>
+              <p className="text-[#958e97] max-w-xl text-sm leading-relaxed">
+                Select a preset persona to run a test analysis, or upload custom data to generate a highly personalized interview strategy based on your resume and a target job description.
+              </p>
+            </div>
+          </div>
 
-          <p style={{
-            fontSize: "1.125rem", color: "var(--text-secondary)",
-            lineHeight: 1.6, maxWidth: "600px", margin: "0 auto",
-            fontWeight: 400
-          }}>
-            Upload your resume and paste the job description to unlock a personalized, interactive interview strategy.
-          </p>
-        </div>
-      </section>
+          {/* Persona Selector Tabs */}
+          <div className="flex flex-wrap items-center gap-2 p-1.5 bg-[#131313] border border-[#2a2a2a] rounded-xl w-fit">
+            {(["Custom", "Software Developer", "Sales", "Marketing", "Web3", "Writer"] as const).map((role) => (
+              <button
+                key={role}
+                onClick={() => handleRoleSelect(role)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  selectedRole === role 
+                    ? "bg-[#201f1f] text-[#00dce5] shadow-sm border border-[#2a2a2a]" 
+                    : "text-[#958e97] hover:text-[#e5e2e1] hover:bg-[#1a1a1a] border border-transparent"
+                }`}
+              >
+                {role === "Custom" ? "✦ Custom Input" : role}
+              </button>
+            ))}
+          </div>
+        </section>
 
-      {/* ── Input Section (Stitch Redesign) ────────────────────────────── */}
-      <section style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 1.5rem 4rem" }}>
-        <div className="animate-fade-in-up delay-200" style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
-          <button
-            onClick={handleLoadSample}
-            style={{
-              background: "transparent", border: "1px solid var(--border-subtle)",
-              borderRadius: "8px", color: "var(--text-muted)", cursor: "pointer",
-              fontSize: "0.8rem", fontWeight: 600, fontFamily: "inherit",
-              padding: "0.5rem 1rem", transition: "all 0.2s",
-              display: "flex", alignItems: "center", gap: "0.5rem",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget).style.color = "var(--text-primary)"; (e.currentTarget).style.borderColor = "var(--accent-from)"; }}
-            onMouseLeave={(e) => { (e.currentTarget).style.color = "var(--text-muted)"; (e.currentTarget).style.borderColor = "var(--border-subtle)"; }}
-          >
-            ✧ Load Sample Data
-          </button>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "2rem", marginBottom: "3rem" }}>
+        {/* Input Forms Grid */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up delay-200">
           
-          {/* PDF Dropzone (Left) */}
-          <div className="glass-card animate-fade-in-up delay-300" style={{ padding: "2.5rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderStyle: "dashed", borderColor: "var(--border-subtle)" }}>
-            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "1.5rem", alignSelf: "flex-start" }}>📄 Resume Upload</h3>
+          {/* Resume Upload Module */}
+          <div className="glass-card flex flex-col p-6 h-[25rem] relative group">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <span className="text-[#00dce5]">01.</span> Resume Data
+              </h3>
+              {fileName && (
+                <span className="text-xs font-mono bg-[#00dce5]/10 text-[#00dce5] px-2 py-1 rounded border border-[#00dce5]/20">
+                  {resume.length} bytes loaded
+                </span>
+              )}
+            </div>
+
             <div 
               onClick={() => !uploadingPdf && fileRef.current?.click()}
-              style={{
-                width: "100%", height: "220px",
-                background: "rgba(255, 255, 255, 0.02)", borderRadius: "12px",
-                border: "1px solid rgba(255, 255, 255, 0.05)",
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                cursor: "pointer", transition: "all 0.2s",
-                position: "relative"
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-from)"; e.currentTarget.style.background = "rgba(0, 220, 229, 0.05)" }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.05)"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.02)" }}
+              className={`flex-1 flex flex-col items-center justify-center rounded-xl transition-all duration-300 border-2 border-dashed ${
+                fileName ? 'border-[#00dce5]/30 bg-[#00dce5]/5' : 'border-[#2a2a2a] bg-[#131313] hover:border-[#00dce5]/50 hover:bg-[#1a1a1a]'
+              } cursor-pointer relative overflow-hidden`}
             >
               <input
-                ref={fileRef} type="file" accept="application/pdf" style={{ display: "none" }}
+                ref={fileRef} type="file" accept="application/pdf" className="hidden"
                 onChange={handlePdfUpload} disabled={uploadingPdf}
               />
               
               {uploadingPdf ? (
-                <>
-                  <div className="spinner" style={{ marginBottom: "1rem" }} />
-                  <span style={{ color: "var(--accent-from)", fontSize: "0.9rem", fontWeight: 500 }}>Extracting semantics...</span>
-                </>
+                <div className="flex flex-col items-center gap-3">
+                  <div className="spinner border-t-[#00dce5] w-8 h-8"></div>
+                  <span className="text-[#00dce5] font-medium text-sm animate-pulse">Extracting document semantics...</span>
+                </div>
               ) : fileName ? (
-                <>
-                  <span style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>✓</span>
-                  <span style={{ fontWeight: 600, color: "var(--success)", fontSize: "1rem" }}>{fileName}</span>
-                  <span style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: "0.5rem" }}>{resume.length.toLocaleString()} chars loaded</span>
-                  <button onClick={(e) => { e.stopPropagation(); setFileName(null); setResume(""); }} style={{ marginTop: "1rem", background: "rgba(255, 255, 255, 0.05)", border: "none", color: "var(--text-primary)", padding: "0.4rem 1rem", borderRadius: "20px", fontSize: "0.8rem", cursor: "pointer" }}>Replace File</button>
-                </>
+                <div className="flex flex-col items-center text-center p-6 w-full h-full justify-center">
+                  <div className="w-16 h-16 rounded-full bg-[#00dce5]/10 flex items-center justify-center mb-4 border border-[#00dce5]/20 text-[#00dce5] text-2xl">
+                    ✓
+                  </div>
+                  <p className="font-semibold text-lg text-white mb-1 truncate max-w-xs">{fileName}</p>
+                  <p className="text-[#958e97] text-sm mb-6">Successfully parsed into structured text</p>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setFileName(null); setResume(""); setSelectedRole("Custom"); }} 
+                    className="z-10 px-4 py-2 bg-[#201f1f] hover:bg-[#2a2a2a] border border-[#2a2a2a] rounded-lg text-sm transition-colors"
+                  >
+                    Upload Alternative
+                  </button>
+                </div>
               ) : (
-                <>
-                  <span style={{ fontSize: "3.5rem", marginBottom: "1rem", opacity: 0.8 }}>📥</span>
-                  <span style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: "1rem" }}>Click or drag PDF here</span>
-                  <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: "0.5rem" }}>Text-based PDFs only (Max 10MB)</span>
-                </>
+                <div className="flex flex-col items-center text-center p-6">
+                  <div className="w-16 h-16 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-4 border border-[#2a2a2a] group-hover:border-[#00dce5]/50 transition-colors text-2xl opacity-80">
+                    📥
+                  </div>
+                  <p className="font-medium text-[15px] mb-1">Upload PDF Document</p>
+                  <p className="text-[#958e97] text-sm max-w-xs">Drag and drop your resume here, or click to browse. Text-based PDFs only.</p>
+                </div>
               )}
             </div>
-            {uploadError && <div className="error-box" style={{ width: "100%", marginTop: "1rem" }}>{uploadError}</div>}
-          </div>
-
-          {/* Job Description Textarea (Right) */}
-          <div className="glass-card animate-fade-in-up delay-400" style={{ padding: "2.5rem", display: "flex", flexDirection: "column" }}>
-            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "1.5rem" }}>💼 Job Description</h3>
-            <textarea
-              className="copilot-textarea"
-              placeholder="Paste the full job description here. Include responsibilities, requirements, and company details..."
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-              style={{ flex: 1 }}
-            />
-          </div>
-          
-        </div>
-
-        <div className="animate-fade-in-up delay-500" style={{ display: "flex", justifyContent: "center" }}>
-          <AnalyzeButton onClick={handleAnalyze} loading={state === "loading"} disabled={!canAnalyze} />
-        </div>
-      </section>
-
-      {/* ── Results ────────────────────────────────────────────────────── */}
-      {(state === "loading" || state === "success" || state === "error") && (
-        <section id="results-section" style={{ maxWidth: "900px", margin: "0 auto", padding: "1rem 1.5rem 5rem" }}>
-          <div className="gradient-divider" />
-
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            marginBottom: "1.5rem", flexWrap: "wrap", gap: "0.75rem",
-          }}>
-            <div>
-              <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
-                {state === "loading" ? "Analyzing your profile…" : state === "success" ? "Your Analysis" : "Analysis failed"}
-              </h2>
-              {state === "success" && (
-                <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
-                  Personalized results based on your resume and job description
-                </p>
-              )}
-            </div>
-            {state === "success" && (
-              <button
-                onClick={handleReset}
-                style={{
-                  background: "none", border: "1px solid var(--border-subtle)",
-                  borderRadius: "8px", color: "var(--text-muted)", cursor: "pointer",
-                  fontSize: "0.8rem", fontFamily: "inherit", fontWeight: 500,
-                  padding: "0.375rem 0.875rem", transition: "color 0.2s, border-color 0.2s",
-                }}
-                onMouseEnter={(e) => { (e.currentTarget).style.color = "var(--text-primary)"; (e.currentTarget).style.borderColor = "var(--border-glow)"; }}
-                onMouseLeave={(e) => { (e.currentTarget).style.color = "var(--text-muted)"; (e.currentTarget).style.borderColor = "var(--border-subtle)"; }}
-              >
-                ↑ New Analysis
-              </button>
+            {uploadError && (
+              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                {uploadError}
+              </div>
             )}
           </div>
 
-          {state === "loading" && <SkeletonResults />}
-          {state === "success" && result && <ResultCards data={result} />}
-          {state === "error" && (
-            <div className="error-box animate-fade-in">
-              <strong>Error:</strong> {error}
-              <br />
-              <span style={{ opacity: 0.7, fontSize: "0.82rem", marginTop: "0.5rem", display: "block" }}>
-                Make sure the backend is running at{" "}
-                <code style={{ fontFamily: "monospace" }}>http://localhost:8000</code> and your Gemini API key is set in <code style={{ fontFamily: "monospace" }}>backend/.env</code>.
-              </span>
+          {/* Job Description Textarea */}
+          <div className="glass-card flex flex-col p-6 h-[25rem]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <span className="text-[#00dce5]">02.</span> Target Specification
+              </h3>
+              {jobDescription.length > 0 && (
+                <button 
+                  onClick={() => { setJobDescription(""); setSelectedRole("Custom"); }}
+                  className="text-xs text-[#958e97] hover:text-white transition-colors"
+                >
+                  Clear text
+                </button>
+              )}
             </div>
-          )}
-        </section>
-      )}
+            <textarea
+              className="flex-1 w-full bg-[#131313] border border-[#2a2a2a] focus:border-[#00dce5] focus:ring-1 ring-[#00dce5]/30 rounded-xl p-5 text-sm leading-relaxed text-[#e5e2e1] placeholder:text-[#958e97]/60 resize-none transition-all outline-none"
+              placeholder="Paste the target job description or role requirements here to calibrate the copilot's analysis..."
+              value={jobDescription}
+              onChange={(e) => {
+                setJobDescription(e.target.value);
+                if (selectedRole !== "Custom") setSelectedRole("Custom");
+              }}
+            />
+          </div>
 
-      {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <footer style={{ borderTop: "1px solid var(--border-subtle)", padding: "1.5rem", textAlign: "center" }}>
-        <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-          UYSO Interview Pilot · Phase 9 · Next.js + FastAPI + Gemini
-        </p>
+        </section>
+
+        {/* Global Analyze Action */}
+        <section className="flex justify-center mt-4 animate-fade-in-up delay-300">
+          <AnalyzeButton onClick={handleAnalyze} loading={state === "loading"} disabled={!canAnalyze} />
+        </section>
+
+        {/* ── Results Dashboard Module ───────────────────────────────────────────────────── */}
+        {(state === "loading" || state === "success" || state === "error") && (
+          <section id="results-section" className="mt-12 mb-20">
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-[#00dce5]/30 to-transparent mb-12"></div>
+            
+            <div className="flex items-end justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight">
+                  {state === "loading" ? (
+                    <span className="flex items-center gap-3">
+                      Processing Matrix <span className="flex space-x-1"><span className="animate-bounce inline-block w-1.5 h-1.5 bg-[#00dce5] rounded-full"></span><span className="animate-bounce delay-100 inline-block w-1.5 h-1.5 bg-[#00dce5] rounded-full"></span><span className="animate-bounce delay-200 inline-block w-1.5 h-1.5 bg-[#00dce5] rounded-full"></span></span>
+                    </span>
+                  ) : state === "success" ? (
+                    "Executive Strategy Brief"
+                  ) : (
+                    <span className="text-red-400">Analysis Exception</span>
+                  )}
+                </h2>
+                {state === "success" && (
+                  <p className="text-[#958e97] text-sm mt-2">
+                    Actionable insights compiled by UYSO Copilot Engine
+                  </p>
+                )}
+              </div>
+              
+              {state === "success" && (
+                <button
+                  onClick={handleReset}
+                  className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#201f1f] hover:bg-[#2a2a2a] border border-[#2a2a2a] hover:border-[#00dce5]/50 rounded-lg text-sm font-medium transition-all"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                  Reset Dashboard
+                </button>
+              )}
+            </div>
+
+            <div className="bg-[#131313] border border-[#2a2a2a] rounded-2xl p-6 md:p-10 shadow-2xl relative overflow-hidden">
+              {/* Subtle grid background for the results container */}
+              <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+              
+              <div className="relative z-10">
+                {state === "loading" && <SkeletonResults />}
+                {state === "success" && result && <ResultCards data={result} />}
+                {state === "error" && (
+                  <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-xl">
+                    <h4 className="text-red-400 font-bold mb-2 flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                      System Error
+                    </h4>
+                    <p className="text-red-300 text-sm mb-4">{error}</p>
+                    <div className="bg-black/20 p-4 rounded-lg text-xs font-mono text-red-200/70 border border-red-900/30">
+                      Diagnostic: Verify that the backend is running at http://localhost:8000 and the Gemini API key is configured correctly in backend/.env.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+      </main>
+
+      {/* ── Footer ─────────────────────────────────────────────────────────────── */}
+      <footer className="w-full border-t border-[#2a2a2a] bg-[#0e0e0e] py-6 mt-auto">
+        <div className="max-w-[1400px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-[#958e97]">
+            © {new Date().getFullYear()} UYSO Interview Copilot. All data processed securely.
+          </p>
+          <div className="flex items-center gap-4 text-xs font-mono text-[#958e97]/60">
+            <span>Next.js 14</span>
+            <span className="w-1 h-1 rounded-full bg-[#2a2a2a]"></span>
+            <span>FastAPI</span>
+            <span className="w-1 h-1 rounded-full bg-[#2a2a2a]"></span>
+            <span>Gemini AI</span>
+          </div>
+        </div>
       </footer>
-    </main>
+    </div>
   );
 }
